@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sorpresa Bebé</title>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+background:linear-gradient(180deg,#f5f5f5,#ffffff);
+margin:0;
+padding:20px;
+}
+
+h1{
+color:#444;
+}
+
+#grid{
+display:grid;
+grid-template-columns:repeat(15,1fr);
+gap:4px;
+max-width:600px;
+margin:auto;
+touch-action:none;
+}
+
+#intro{
+max-width:600px;
+margin:10px auto 20px auto;
+font-size:18px;
+color:#555;
+line-height:1.6;
+}
+
+.cell{
+aspect-ratio:1;
+background:#fafafa;
+border-radius:6px;
+border:1px solid #ddd;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+font-size:18px;
+color:#333;
+user-select:none;
+}
+
+.cell.selected{
+background:#d6d6d6;
+}
+
+.cell.found{
+background:#4caf50;
+color:white;
+}
+
+#progressContainer{
+width:80%;
+max-width:500px;
+height:20px;
+background:#e3f2fd;
+margin:20px auto;
+border-radius:10px;
+overflow:hidden;
+}
+
+#progressBar{
+height:100%;
+width:0%;
+background:#1976d2;
+transition:width .3s;
+}
+
+#wordList{
+max-width:600px;
+margin:auto;
+font-size:18px;
+line-height:1.6;
+}
+
+.foundWord{
+text-decoration:line-through;
+color:#90a4ae;
+}
+
+#finalScreen{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#1976d2;
+display:none;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+color:white;
+font-size:60px;
+font-weight:bold;
+z-index:999;
+text-align:center;
+padding:20px;
+}
+
+#baby{
+font-size:100px;
+margin-top:20px;
+}
+
+@media(max-width:600px){
+
+.cell{
+font-size:16px;
+}
+
+#finalScreen{
+font-size:40px;
+}
+
+#baby{
+font-size:70px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Encuentra todas las palabras</h1>
+<p>Cuando lo logres descubrirás una sorpresa</p>
+
+<div id="progressContainer">
+<div id="progressBar"></div>
+</div>
+
+<div id="intro">
+<p>Hemos preparado un pequeño juego para ustedes.</p>
+<p>Encuentren todas las palabras.</p>
+<p>Cuando lo logren descubrirán una sorpresa muy especial 💛</p>
+</div>
+
+<div id="grid"></div>
+
+<div id="wordList"></div>
+
+<div id="finalScreen">
+<div>🎉 ¡ES NIÑO! 🎉</div>
+<div id="baby">👶🏻💙</div>
+</div>
+
+<audio id="winSound">
+<source src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3">
+</audio>
+
+<script>
+
+const words=[
+"BEBE","PAPA","MAMA","ALEGRIA","TETERO",
+"EMBARAZO","ABUELO","ABUELA","HIJOS",
+"CORAZON","BARRIGA","SONRISA","CARIÑO",
+"TIO","TIA"
+]
+
+const gridSize=15
+let grid=[]
+let selected=[]
+let dragging=false
+let foundCount=0
+
+function createGrid(){
+
+for(let i=0;i<gridSize;i++){
+grid[i]=[]
+for(let j=0;j<gridSize;j++){
+grid[i][j]=""
+}
+}
+
+}
+
+function placeWord(word){
+
+const dirs=[
+[0,1],[1,0],[1,1],[-1,1],
+[0,-1],[-1,0],[-1,-1],[1,-1]
+]
+
+let placed=false
+
+while(!placed){
+
+let dir=dirs[Math.floor(Math.random()*dirs.length)]
+
+let row=Math.floor(Math.random()*gridSize)
+let col=Math.floor(Math.random()*gridSize)
+
+let endRow=row+dir[0]*(word.length-1)
+let endCol=col+dir[1]*(word.length-1)
+
+if(endRow<0||endRow>=gridSize||endCol<0||endCol>=gridSize) continue
+
+let fits=true
+
+for(let i=0;i<word.length;i++){
+
+let r=row+dir[0]*i
+let c=col+dir[1]*i
+
+if(grid[r][c]!="" && grid[r][c]!=word[i]){
+fits=false
+break
+}
+
+}
+
+if(!fits) continue
+
+for(let i=0;i<word.length;i++){
+
+let r=row+dir[0]*i
+let c=col+dir[1]*i
+
+grid[r][c]=word[i]
+
+}
+
+placed=true
+
+}
+
+}
+
+function fillEmpty(){
+
+const letters="ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+
+for(let i=0;i<gridSize;i++){
+for(let j=0;j<gridSize;j++){
+
+if(grid[i][j]==""){
+grid[i][j]=letters[Math.floor(Math.random()*letters.length)]
+}
+
+}
+}
+
+}
+
+function renderGrid(){
+
+const gridDiv=document.getElementById("grid")
+gridDiv.innerHTML=""
+
+for(let i=0;i<gridSize;i++){
+for(let j=0;j<gridSize;j++){
+
+const cell=document.createElement("div")
+cell.className="cell"
+cell.innerText=grid[i][j]
+cell.dataset.row=i
+cell.dataset.col=j
+
+cell.addEventListener("mousedown",start)
+cell.addEventListener("mouseover",move)
+
+cell.addEventListener("touchstart",touchStart)
+cell.addEventListener("touchmove",touchMove)
+
+gridDiv.appendChild(cell)
+
+}
+}
+
+document.addEventListener("mouseup",end)
+document.addEventListener("touchend",end)
+
+}
+
+function start(e){
+
+clear()
+dragging=true
+select(e.target)
+
+}
+
+function move(e){
+
+if(!dragging) return
+select(e.target)
+
+}
+
+function touchStart(e){
+
+clear()
+dragging=true
+
+const t=e.touches[0]
+const el=document.elementFromPoint(t.clientX,t.clientY)
+
+if(el.classList.contains("cell")) select(el)
+
+}
+
+function touchMove(e){
+
+if(!dragging) return
+
+const t=e.touches[0]
+const el=document.elementFromPoint(t.clientX,t.clientY)
+
+if(el.classList.contains("cell")) select(el)
+
+}
+
+function select(cell){
+
+let row=cell.dataset.row
+let col=cell.dataset.col
+
+if(selected.find(c=>c.row==row && c.col==col)) return
+
+selected.push({row,col,cell})
+cell.classList.add("selected")
+
+}
+
+function end(){
+
+if(!dragging) return
+
+dragging=false
+
+let word=""
+
+selected.forEach(c=>{
+word+=grid[c.row][c.col]
+})
+
+let rev=word.split("").reverse().join("")
+
+if(words.includes(word)||words.includes(rev)){
+
+selected.forEach(c=>{
+c.cell.classList.remove("selected")
+c.cell.classList.add("found")
+})
+
+mark(word)
+mark(rev)
+
+foundCount++
+progress()
+
+}
+
+clear()
+
+}
+
+function clear(){
+
+selected.forEach(c=>{
+c.cell.classList.remove("selected")
+})
+
+selected=[]
+
+}
+
+function mark(word){
+
+let el=document.getElementById("w_"+word)
+if(el) el.classList.add("foundWord")
+
+}
+
+function renderList(){
+
+let html=words.map(w=>`<span id="w_${w}">${w}</span>`).join(" • ")
+
+document.getElementById("wordList").innerHTML=html
+
+}
+
+function progress(){
+
+let percent=(foundCount/words.length)*100
+
+document.getElementById("progressBar").style.width=percent+"%"
+
+if(foundCount===words.length){
+
+document.getElementById("winSound").play()
+
+setTimeout(()=>{
+
+document.getElementById("finalScreen").style.display="flex"
+
+confetti({
+particleCount:200,
+spread:120,
+origin:{y:0.6}
+})
+
+},600)
+
+}
+
+}
+
+function init(){
+
+createGrid()
+
+words.forEach(w=>placeWord(w))
+
+fillEmpty()
+
+renderGrid()
+
+renderList()
+
+}
+
+init()
+
+</script>
+
+</body>
+</html>
