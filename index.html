@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Sorpresa Bebé</title>
+<title>Sopa de Letras</title>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -20,6 +20,38 @@ h1{
 color:#444;
 }
 
+/* PANTALLA INICIAL */
+
+#startScreen{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:white;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:1000;
+}
+
+#startBtn{
+padding:15px 40px;
+font-size:22px;
+background:#1976d2;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+#startBtn:hover{
+background:#1565c0;
+}
+
+/* GRID */
+
 #grid{
 display:grid;
 grid-template-columns:repeat(15,1fr);
@@ -27,14 +59,6 @@ gap:4px;
 max-width:600px;
 margin:auto;
 touch-action:none;
-}
-
-#intro{
-max-width:600px;
-margin:10px auto 20px auto;
-font-size:18px;
-color:#555;
-line-height:1.6;
 }
 
 .cell{
@@ -60,6 +84,18 @@ background:#4caf50;
 color:white;
 }
 
+/* INTRO */
+
+#intro{
+max-width:600px;
+margin:10px auto 20px auto;
+font-size:18px;
+color:#555;
+line-height:1.6;
+}
+
+/* PROGRESO */
+
 #progressContainer{
 width:80%;
 max-width:500px;
@@ -77,6 +113,8 @@ background:#1976d2;
 transition:width .3s;
 }
 
+/* LISTA */
+
 #wordList{
 max-width:600px;
 margin:auto;
@@ -88,6 +126,8 @@ line-height:1.6;
 text-decoration:line-through;
 color:#90a4ae;
 }
+
+/* FINAL */
 
 #finalScreen{
 position:fixed;
@@ -134,8 +174,15 @@ font-size:70px;
 
 <body>
 
+<!-- PANTALLA INICIAL -->
+
+<div id="startScreen">
+<h1>Tenemos una noticia para ti</h1>
+<p>Encuentra todas las palabras para descubrir la sorpresa</p>
+<button id="startBtn" onclick="startGame()">Comenzar Juego</button>
+</div>
+
 <h1>Encuentra todas las palabras</h1>
-<p>Cuando lo logres descubrirás una sorpresa</p>
 
 <div id="progressContainer">
 <div id="progressBar"></div>
@@ -175,6 +222,16 @@ let selected=[]
 let dragging=false
 let foundCount=0
 
+function startGame(){
+
+document.getElementById("startScreen").style.display="none"
+
+init()
+
+}
+
+/* GRID */
+
 function createGrid(){
 
 for(let i=0;i<gridSize;i++){
@@ -186,11 +243,15 @@ grid[i][j]=""
 
 }
 
+/* SOLO HORIZONTAL Y VERTICAL */
+
 function placeWord(word){
 
 const dirs=[
-[0,1],[1,0],[1,1],[-1,1],
-[0,-1],[-1,0],[-1,-1],[1,-1]
+[0,1],
+[1,0],
+[0,-1],
+[-1,0]
 ]
 
 let placed=false
@@ -340,6 +401,45 @@ if(!dragging) return
 
 dragging=false
 
+if(selected.length < 2){
+clear()
+return
+}
+
+let r0 = parseInt(selected[0].row)
+let c0 = parseInt(selected[0].col)
+let r1 = parseInt(selected[1].row)
+let c1 = parseInt(selected[1].col)
+
+/* validar dirección */
+
+let horizontal = r0 === r1
+let vertical = c0 === c1
+
+if(!horizontal && !vertical){
+clear()
+return
+}
+
+/* validar que todas sigan la misma linea */
+
+for(let i=1;i<selected.length;i++){
+
+let r = parseInt(selected[i].row)
+let c = parseInt(selected[i].col)
+
+if(horizontal && r !== r0){
+clear()
+return
+}
+
+if(vertical && c !== c0){
+clear()
+return
+}
+
+}
+
 let word=""
 
 selected.forEach(c=>{
@@ -431,8 +531,6 @@ renderGrid()
 renderList()
 
 }
-
-init()
 
 </script>
 
